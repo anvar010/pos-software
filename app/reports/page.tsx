@@ -33,7 +33,7 @@ export default async function ReportsPage({
   return (
     <>
       <Topbar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-5">
+      <main className="w-full flex-1 px-4 py-6 sm:px-6">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <Link href="/" className="text-sm text-indigo-600 hover:underline">

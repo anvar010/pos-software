@@ -20,7 +20,7 @@ export default async function InventoryPage() {
   return (
     <>
       <Topbar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-5">
+      <main className="w-full flex-1 px-4 py-6 sm:px-6">
         <div className="mb-5">
           <Link href="/" className="text-sm text-indigo-600 hover:underline">
             ← Home

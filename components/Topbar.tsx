@@ -16,7 +16,7 @@ export async function Topbar() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-5">
+      <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-sm">
             🛍️
