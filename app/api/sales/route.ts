@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
   const insufficient = input.items
     .map((i) => {
       const p = productMap.get(i.productId)!;
-      return { productId: i.productId, name: p.name, available: p.stockQuantity, requested: i.quantity };
+      return { productId: i.productId, name: p.name, available: Number(p.stockQuantity), requested: i.quantity };
     })
     .filter((x) => x.requested > x.available);
 

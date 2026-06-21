@@ -122,7 +122,7 @@ export async function getReport(period: ReportPeriod): Promise<ReportData> {
   const bestSellers = grouped.map((g) => ({
     productId: g.productId,
     name: nameById.get(g.productId) ?? "(deleted)",
-    quantity: g._sum.quantity ?? 0,
+    quantity: Number(g._sum.quantity ?? 0),
     revenue: Number(g._sum.subtotal ?? 0),
   }));
 
@@ -142,23 +142,28 @@ export async function getReport(period: ReportPeriod): Promise<ReportData> {
     }))
     .sort((a, b) => b.revenue - a.revenue);
 
-  // Stock overview
-  const lowStock = products.filter(
-    (p) => p.stockQuantity <= p.lowStockThreshold && p.stockQuantity > 0
-  );
-  const outOfStock = products.filter((p) => p.stockQuantity <= 0);
-  const inventoryRetailValue = products.reduce(
-    (s, p) => s + Number(p.price) * p.stockQuantity,
+  // Stock overview (stockQuantity is Decimal -> convert)
+  const stockProducts = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: Number(p.price),
+    stock: Number(p.stockQuantity),
+    threshold: p.lowStockThreshold,
+  }));
+  const lowStock = stockProducts.filter((p) => p.stock <= p.threshold && p.stock > 0);
+  const outOfStock = stockProducts.filter((p) => p.stock <= 0);
+  const inventoryRetailValue = stockProducts.reduce(
+    (s, p) => s + p.price * p.stock,
     0
   );
   const topLow = [...lowStock, ...outOfStock]
-    .sort((a, b) => a.stockQuantity - b.stockQuantity)
+    .sort((a, b) => a.stock - b.stock)
     .slice(0, 8)
     .map((p) => ({
       id: p.id,
       name: p.name,
-      stock: p.stockQuantity,
-      threshold: p.lowStockThreshold,
+      stock: p.stock,
+      threshold: p.threshold,
     }));
 
   return {

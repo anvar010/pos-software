@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (lowStock) {
-    products = products.filter((p) => p.stockQuantity <= p.lowStockThreshold);
+    products = products.filter((p) => Number(p.stockQuantity) <= p.lowStockThreshold);
   }
 
   return NextResponse.json(products.map(serializeProduct));
