@@ -78,6 +78,7 @@ export interface ProductDTO {
   barcode: string | null;
   price: number;
   costPrice: number;
+  unit: string;
   categoryId: string | null;
   category: CategoryDTO | null;
   stockQuantity: number;

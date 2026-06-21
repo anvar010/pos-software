@@ -10,6 +10,7 @@ export interface CartLine {
   sku: string;
   unitPrice: number;
   taxRate: number;
+  unit: string;
   imageUrl: string | null;
   quantity: number;
   lineDiscount: number;
@@ -60,6 +61,7 @@ export const useCart = create<CartState>()(
             sku: p.sku,
             unitPrice: p.price,
             taxRate: p.taxRate,
+            unit: p.unit,
             imageUrl: p.imageUrl,
             quantity: qty,
             lineDiscount: 0,
@@ -70,12 +72,11 @@ export const useCart = create<CartState>()(
 
       setQuantity: (productId, qty) =>
         set((state) => ({
-          lines:
-            qty <= 0
-              ? state.lines.filter((l) => l.productId !== productId)
-              : state.lines.map((l) =>
-                  l.productId === productId ? { ...l, quantity: qty } : l
-                ),
+          // Clamp at 0 but keep the line (remove via the ✕ button) so a cashier
+          // can type fractional weights like "0.250" without it vanishing.
+          lines: state.lines.map((l) =>
+            l.productId === productId ? { ...l, quantity: Math.max(0, qty) } : l
+          ),
         })),
 
       increment: (productId, delta) =>

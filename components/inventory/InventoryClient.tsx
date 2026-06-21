@@ -150,6 +150,10 @@ export function InventoryClient({
                 <img
                   src={p.imageUrl || "/icons/icon-192.png"}
                   alt=""
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = "/icons/icon-192.png";
+                  }}
                   className="h-12 w-12 shrink-0 rounded-lg object-cover"
                 />
                 <div className="min-w-0 flex-1">

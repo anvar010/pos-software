@@ -172,7 +172,11 @@ export function CheckoutClient({
                   <img
                     src={p.imageUrl || FALLBACK_IMG}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = FALLBACK_IMG;
+                    }}
+                    className="absolute inset-0 h-full w-full object-contain p-2"
                   />
                   <span
                     className={`absolute right-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
@@ -191,6 +195,9 @@ export function CheckoutClient({
                     </p>
                     <p className="mt-0.5 text-sm font-bold text-white">
                       {formatCurrency(p.price, currency)}
+                      {p.unit !== "pcs" && (
+                        <span className="text-[10px] font-normal">/{p.unit}</span>
+                      )}
                     </p>
                   </div>
                 </button>
@@ -205,11 +212,12 @@ export function CheckoutClient({
         </div>
 
         {/* Category tabs — above search on mobile, below grid on desktop */}
-        <div className="order-first flex gap-2 overflow-x-auto border-b border-slate-200 pb-3 lg:order-none lg:border-b-0 lg:border-t lg:pb-0 lg:pt-3">
-          <CategoryTab label="All" active={categoryId === ""} onClick={() => setCategoryId("")} />
+        <div className="order-first flex gap-3 overflow-x-auto border-b border-slate-200 pb-2 lg:order-none lg:border-b-0 lg:border-t lg:pb-1 lg:pt-3">
+          <CategoryTab icon="🏪" label="All" active={categoryId === ""} onClick={() => setCategoryId("")} />
           {categories.map((c) => (
             <CategoryTab
               key={c.id}
+              icon={catIcon(c.name)}
               label={c.name}
               active={categoryId === c.id}
               onClick={() => setCategoryId(c.id)}
@@ -370,7 +378,8 @@ function CartCard({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{l.name}</p>
                     <p className="text-xs text-slate-400">
-                      {formatCurrency(l.unitPrice, currency)} each
+                      {formatCurrency(l.unitPrice, currency)}
+                      {l.unit === "pcs" ? " each" : ` / ${l.unit}`}
                     </p>
                   </div>
                   <button
@@ -381,20 +390,35 @@ function CartCard({
                   </button>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => cart.increment(l.productId, -1)}
+                      onClick={() => cart.increment(l.productId, -qtyStep(l.unit))}
                       className="h-8 w-8 rounded-lg border border-slate-300 text-lg leading-none"
                     >
                       −
                     </button>
-                    <span className="w-7 text-center text-sm font-medium">{l.quantity}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step={isWeight(l.unit) ? "50" : "1"}
+                      value={
+                        isWeight(l.unit) ? Math.round(l.quantity * 1000) : l.quantity
+                      }
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value) || 0;
+                        cart.setQuantity(l.productId, isWeight(l.unit) ? v / 1000 : v);
+                      }}
+                      className="w-16 rounded-lg border border-slate-300 px-1 py-1 text-center text-sm"
+                    />
                     <button
-                      onClick={() => cart.increment(l.productId, 1)}
+                      onClick={() => cart.increment(l.productId, qtyStep(l.unit))}
                       className="h-8 w-8 rounded-lg border border-slate-300 text-lg leading-none"
                     >
                       +
                     </button>
+                    <span className="text-xs text-slate-400">
+                      {isWeight(l.unit) ? subUnit(l.unit) : ""}
+                    </span>
                   </div>
                   <input
                     type="number"
@@ -461,11 +485,37 @@ function CartCard({
   );
 }
 
+const CAT_ICONS: Record<string, string> = {
+  Vegetables: "🥦",
+  Fruits: "🍎",
+  "Cool Drinks": "🥤",
+  Dairy: "🥛",
+  Snacks: "🍿",
+  Bakery: "🍞",
+  Groceries: "🛒",
+  Household: "🧴",
+  "Personal Care": "🧼",
+};
+function catIcon(name: string): string {
+  return CAT_ICONS[name] ?? "🏷️";
+}
+
+// +/- step depends on how the product is sold.
+// +/- step in BASE unit. Weight/volume = 0.1 (=100 g / 100 ml) per tap.
+function qtyStep(unit: string): number {
+  if (unit === "kg" || unit === "ltr") return 0.1;
+  return 1; // pcs
+}
+const isWeight = (unit: string) => unit === "kg" || unit === "ltr";
+const subUnit = (unit: string) => (unit === "ltr" ? "ml" : "g");
+
 function CategoryTab({
+  icon,
   label,
   active,
   onClick,
 }: {
+  icon: string;
   label: string;
   active: boolean;
   onClick: () => void;
@@ -473,13 +523,24 @@ function CategoryTab({
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
-        active
-          ? "bg-indigo-600 text-white shadow-sm"
-          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
-      }`}
+      className="flex w-16 shrink-0 flex-col items-center gap-1"
     >
-      {label}
+      <span
+        className={`flex h-12 w-12 items-center justify-center rounded-full text-xl transition ${
+          active
+            ? "bg-indigo-600 text-white shadow-md"
+            : "bg-slate-100 text-slate-600"
+        }`}
+      >
+        {icon}
+      </span>
+      <span
+        className={`max-w-full truncate text-[11px] font-medium ${
+          active ? "text-indigo-700" : "text-slate-500"
+        }`}
+      >
+        {label}
+      </span>
     </button>
   );
 }

@@ -10,6 +10,7 @@ type FormState = {
   barcode: string;
   price: string;
   costPrice: string;
+  unit: string;
   categoryId: string;
   stockQuantity: string;
   lowStockThreshold: string;
@@ -24,6 +25,7 @@ function initialState(product?: ProductDTO): FormState {
     barcode: product?.barcode ?? "",
     price: product ? String(product.price) : "",
     costPrice: product ? String(product.costPrice) : "0",
+    unit: product?.unit ?? "pcs",
     categoryId: product?.categoryId ?? "",
     stockQuantity: product ? String(product.stockQuantity) : "0",
     lowStockThreshold: product ? String(product.lowStockThreshold) : "5",
@@ -89,6 +91,7 @@ export function ProductForm({
       barcode: form.barcode || null,
       price: form.price,
       costPrice: form.costPrice || 0,
+      unit: form.unit,
       categoryId: form.categoryId || null,
       stockQuantity: form.stockQuantity || 0,
       lowStockThreshold: form.lowStockThreshold || 0,
@@ -128,6 +131,7 @@ export function ProductForm({
                   <img
                     src={form.imageUrl}
                     alt=""
+                    referrerPolicy="no-referrer"
                     className="h-16 w-16 shrink-0 rounded-lg border border-slate-200 object-cover"
                   />
                 ) : (
@@ -189,7 +193,7 @@ export function ProductForm({
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
-              Price
+              Price (per {form.unit})
               <input
                 className={inputClass}
                 type="number"
@@ -199,6 +203,19 @@ export function ProductForm({
                 value={form.price}
                 onChange={(e) => set("price", e.target.value)}
               />
+            </label>
+
+            <label className="block text-sm font-medium text-slate-700">
+              Sold by (unit)
+              <select
+                className={inputClass}
+                value={form.unit}
+                onChange={(e) => set("unit", e.target.value)}
+              >
+                <option value="pcs">Piece (pcs)</option>
+                <option value="kg">Weight (kg) — sell loose by grams</option>
+                <option value="ltr">Volume (ltr) — sell loose by ml</option>
+              </select>
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
@@ -243,11 +260,11 @@ export function ProductForm({
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
-              Stock quantity
+              Stock quantity ({form.unit})
               <input
                 className={inputClass}
                 type="number"
-                step="1"
+                step={form.unit === "kg" || form.unit === "ltr" ? "0.001" : "1"}
                 value={form.stockQuantity}
                 onChange={(e) => set("stockQuantity", e.target.value)}
               />

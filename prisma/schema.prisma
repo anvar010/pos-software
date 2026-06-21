@@ -71,10 +71,11 @@ model Product {
   name              String
   sku               String   @unique
   barcode           String?  @unique
-  price             Decimal  @db.Decimal(10, 2)
+  price             Decimal  @db.Decimal(10, 2) // price per `unit`
   costPrice         Decimal  @default(0) @db.Decimal(10, 2)
+  unit              String   @default("pcs") // pcs | kg | ltr | g
   categoryId        String?
-  stockQuantity     Int      @default(0)
+  stockQuantity     Decimal  @default(0) @db.Decimal(12, 3)
   lowStockThreshold Int      @default(5)
   imageUrl          String?
   taxRate           Decimal  @default(0) @db.Decimal(5, 2) // percentage, e.g. 7.50
@@ -135,7 +136,7 @@ model SaleItem {
   id             String  @id @default(cuid())
   saleId         String
   productId      String
-  quantity       Int
+  quantity       Decimal @db.Decimal(12, 3)
   unitPrice      Decimal @db.Decimal(10, 2)
   discountAmount Decimal @default(0) @db.Decimal(10, 2)
   subtotal       Decimal @db.Decimal(10, 2)
@@ -150,7 +151,7 @@ model SaleItem {
 model InventoryLog {
   id           String          @id @default(cuid())
   productId    String
-  changeAmount Int // negative = stock out, positive = stock in
+  changeAmount Decimal @db.Decimal(12, 3) // negative = stock out, positive = stock in
   reason       InventoryReason @default(ADJUSTMENT)
   note         String?
   userId       String?

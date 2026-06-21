@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
         barcode: r.barcode ?? null,
         price: r.price,
         costPrice: r.costPrice,
+        unit: r.unit,
         stockQuantity: r.stockQuantity,
         lowStockThreshold: r.lowStockThreshold,
         taxRate: r.taxRate,

@@ -9,8 +9,9 @@ export const productInputSchema = z.object({
   barcode: z.preprocess(emptyToNull, z.string().trim().min(1).nullable()),
   price: z.coerce.number().nonnegative("Price must be ≥ 0"),
   costPrice: z.coerce.number().nonnegative().default(0),
+  unit: z.enum(["pcs", "kg", "ltr"]).default("pcs"),
   categoryId: z.preprocess(emptyToNull, z.string().nullable()),
-  stockQuantity: z.coerce.number().int("Stock must be a whole number").default(0),
+  stockQuantity: z.coerce.number().nonnegative().default(0),
   lowStockThreshold: z.coerce.number().int().nonnegative().default(5),
   imageUrl: z.preprocess(emptyToNull, z.string().nullable()),
   taxRate: z.coerce.number().nonnegative().max(100).default(0),
@@ -24,7 +25,6 @@ export type ProductInput = z.infer<typeof productInputSchema>;
 export const stockAdjustSchema = z.object({
   changeAmount: z
     .coerce.number()
-    .int()
     .refine((n) => n !== 0, "Change amount cannot be zero"),
   reason: z.enum(["RESTOCK", "ADJUSTMENT", "RETURN"]).default("ADJUSTMENT"),
   note: z.string().trim().optional(),
@@ -57,7 +57,8 @@ export const csvProductRowSchema = z.object({
   price: z.coerce.number().nonnegative(),
   costPrice: z.coerce.number().nonnegative().optional().default(0),
   category: z.preprocess(emptyToNull, z.string().trim().nullable()).optional(),
-  stockQuantity: z.coerce.number().int().optional().default(0),
+  unit: z.enum(["pcs", "kg", "ltr"]).optional().default("pcs"),
+  stockQuantity: z.coerce.number().optional().default(0),
   lowStockThreshold: z.coerce.number().int().nonnegative().optional().default(5),
   taxRate: z.coerce.number().nonnegative().max(100).optional().default(0),
 });
@@ -76,7 +77,7 @@ export const customerUpdateSchema = customerInputSchema.partial();
 // --- Sales -----------------------------------------------------------------
 export const saleItemInputSchema = z.object({
   productId: z.string().min(1),
-  quantity: z.coerce.number().int().positive(),
+  quantity: z.coerce.number().positive(),
   unitPrice: z.coerce.number().nonnegative(),
   lineDiscount: z.coerce.number().nonnegative().default(0),
 });
