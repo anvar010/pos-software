@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { OnlineStatus } from "@/components/OnlineStatus";
+import { MobileMenu } from "@/components/MobileMenu";
 
 const NAV = [
   { href: "/checkout", label: "Checkout" },
@@ -17,12 +18,15 @@ export async function Topbar() {
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
       <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-sm">
-            🛍️
-          </span>
-          <span className="hidden sm:inline">Retail POS</span>
-        </Link>
+        <div className="flex shrink-0 items-center gap-1">
+          <MobileMenu />
+          <Link href="/" className="flex items-center gap-2 font-semibold">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-sm">
+              🛍️
+            </span>
+            <span className="hidden sm:inline">Retail POS</span>
+          </Link>
+        </div>
 
         <nav className="hidden flex-1 items-center gap-1 md:flex">
           {NAV.map((n) => (
