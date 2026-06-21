@@ -405,19 +405,11 @@ function CartCard({
                     <input
                       type="number"
                       min="0"
-                      step={showSub(l.unit) ? "50" : "1"}
-                      value={
-                        showSub(l.unit)
-                          ? Math.round(l.quantity * subFactor(l.unit))
-                          : l.quantity
+                      step={qtyInputStep(l.unit)}
+                      value={l.unit === "g" ? Math.round(l.quantity) : l.quantity}
+                      onChange={(e) =>
+                        cart.setQuantity(l.productId, parseFloat(e.target.value) || 0)
                       }
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value) || 0;
-                        cart.setQuantity(
-                          l.productId,
-                          showSub(l.unit) ? v / subFactor(l.unit) : v
-                        );
-                      }}
                       className="w-16 rounded-lg border border-slate-300 px-1 py-1 text-center text-sm"
                     />
                     <button
@@ -426,9 +418,7 @@ function CartCard({
                     >
                       +
                     </button>
-                    <span className="text-xs text-slate-400">
-                      {showSub(l.unit) ? subUnit(l.unit) : ""}
-                    </span>
+                    <span className="text-xs text-slate-400">{qtyLabel(l.unit)}</span>
                   </div>
                   <input
                     type="number"
@@ -511,17 +501,16 @@ function catIcon(name: string): string {
 }
 
 // +/- step depends on how the product is sold.
-// +/- step in BASE unit per tap.
+// +/- step per tap, in the unit's own scale.
 function qtyStep(unit: string): number {
-  if (unit === "kg" || unit === "ltr") return 0.1; // 100 g/ml
-  if (unit === "g") return 50; // 50 grams
+  if (unit === "g") return 50; // +50 grams
+  if (unit === "kg" || unit === "ltr") return 0.25; // +0.25 kg/ltr
   return 1; // pcs
 }
-// Show a sub-unit field (grams/ml) for everything except pcs.
-const showSub = (unit: string) => unit !== "pcs";
-const subUnit = (unit: string) => (unit === "ltr" ? "ml" : "g");
-// kg/ltr stored in kg/ltr -> ×1000 for grams/ml; g already in grams.
-const subFactor = (unit: string) => (unit === "kg" || unit === "ltr" ? 1000 : 1);
+const qtyInputStep = (unit: string) =>
+  unit === "g" ? "50" : unit === "kg" || unit === "ltr" ? "0.25" : "1";
+// Unit label shown next to the qty box (none for pcs).
+const qtyLabel = (unit: string) => (unit === "pcs" ? "" : unit);
 
 function CategoryTab({
   icon,
