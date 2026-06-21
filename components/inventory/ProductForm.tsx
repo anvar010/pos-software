@@ -57,6 +57,29 @@ export function ProductForm({
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  // Resize an uploaded image client-side and store it as a JPEG data URL
+  // (no file storage needed; works on Vercel).
+  async function handleUpload(file: File) {
+    setError(null);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const max = 500;
+      const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+      const w = Math.round(bitmap.width * scale);
+      const h = Math.round(bitmap.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas not supported");
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      bitmap.close?.();
+      set("imageUrl", canvas.toDataURL("image/jpeg", 0.8));
+    } catch {
+      setError("Could not read that image.");
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -215,15 +238,53 @@ export function ProductForm({
               />
             </label>
 
-            <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
-              Image URL
+            <div className="block text-sm font-medium text-slate-700 sm:col-span-2">
+              Image
+              <div className="mt-1 flex items-center gap-3">
+                {form.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={form.imageUrl}
+                    alt=""
+                    className="h-16 w-16 shrink-0 rounded-lg border border-slate-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xl text-slate-300">
+                    🖼
+                  </div>
+                )}
+                <div className="flex flex-col gap-1">
+                  <label className="cursor-pointer rounded-lg bg-slate-800 px-3 py-1.5 text-center text-xs font-semibold text-white active:scale-95">
+                    {form.imageUrl ? "Change photo" : "Upload photo"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUpload(f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {form.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => set("imageUrl", "")}
+                      className="text-xs text-slate-400 hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
               <input
-                className={inputClass}
-                placeholder="https://…"
-                value={form.imageUrl}
+                className={`${inputClass} mt-2`}
+                placeholder="…or paste an image URL"
+                value={form.imageUrl.startsWith("data:") ? "" : form.imageUrl}
                 onChange={(e) => set("imageUrl", e.target.value)}
               />
-            </label>
+            </div>
           </div>
 
           {error && (
