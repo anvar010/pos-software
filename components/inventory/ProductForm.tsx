@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
 import type { CategoryDTO, ProductDTO } from "@/types";
 
 type FormState = {
@@ -50,7 +49,6 @@ export function ProductForm({
   const [form, setForm] = useState<FormState>(initialState(product));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const isEdit = !!product;
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -140,25 +138,6 @@ export function ProductForm({
                 value={form.sku}
                 onChange={(e) => set("sku", e.target.value)}
               />
-            </label>
-
-            <label className="block text-sm font-medium text-slate-700">
-              Barcode
-              <div className="mt-1 flex gap-2">
-                <input
-                  className={inputClass.replace("mt-1 ", "")}
-                  value={form.barcode}
-                  onChange={(e) => set("barcode", e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setScanning(true)}
-                  className="shrink-0 rounded-lg border border-slate-300 px-3 text-sm font-medium hover:bg-slate-100"
-                  title="Scan with camera"
-                >
-                  📷
-                </button>
-              </div>
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
@@ -311,16 +290,6 @@ export function ProductForm({
           </div>
         </form>
       </Modal>
-
-      {scanning && (
-        <BarcodeScanner
-          onScan={(code) => {
-            set("barcode", code);
-            setScanning(false);
-          }}
-          onClose={() => setScanning(false)}
-        />
-      )}
     </>
   );
 }
