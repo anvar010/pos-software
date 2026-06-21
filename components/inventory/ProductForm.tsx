@@ -120,6 +120,54 @@ export function ProductForm({
       <Modal title={isEdit ? "Edit product" : "Add product"} onClose={onClose} size="lg">
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="block text-sm font-medium text-slate-700 sm:col-span-2">
+              Image
+              <div className="mt-1 flex items-center gap-3">
+                {form.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={form.imageUrl}
+                    alt=""
+                    className="h-16 w-16 shrink-0 rounded-lg border border-slate-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xl text-slate-300">
+                    🖼
+                  </div>
+                )}
+                <div className="flex flex-col gap-1">
+                  <label className="cursor-pointer rounded-lg bg-slate-800 px-3 py-1.5 text-center text-xs font-semibold text-white active:scale-95">
+                    {form.imageUrl ? "Change photo" : "Upload photo"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUpload(f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {form.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => set("imageUrl", "")}
+                      className="text-xs text-slate-400 hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+              <input
+                className={`${inputClass} mt-2`}
+                placeholder="…or paste an image URL"
+                value={form.imageUrl.startsWith("data:") ? "" : form.imageUrl}
+                onChange={(e) => set("imageUrl", e.target.value)}
+              />
+            </div>
+
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               Name
               <input
@@ -216,54 +264,6 @@ export function ProductForm({
                 onChange={(e) => set("lowStockThreshold", e.target.value)}
               />
             </label>
-
-            <div className="block text-sm font-medium text-slate-700 sm:col-span-2">
-              Image
-              <div className="mt-1 flex items-center gap-3">
-                {form.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={form.imageUrl}
-                    alt=""
-                    className="h-16 w-16 shrink-0 rounded-lg border border-slate-200 object-cover"
-                  />
-                ) : (
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xl text-slate-300">
-                    🖼
-                  </div>
-                )}
-                <div className="flex flex-col gap-1">
-                  <label className="cursor-pointer rounded-lg bg-slate-800 px-3 py-1.5 text-center text-xs font-semibold text-white active:scale-95">
-                    {form.imageUrl ? "Change photo" : "Upload photo"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleUpload(f);
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                  {form.imageUrl && (
-                    <button
-                      type="button"
-                      onClick={() => set("imageUrl", "")}
-                      className="text-xs text-slate-400 hover:text-red-600"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </div>
-              <input
-                className={`${inputClass} mt-2`}
-                placeholder="…or paste an image URL"
-                value={form.imageUrl.startsWith("data:") ? "" : form.imageUrl}
-                onChange={(e) => set("imageUrl", e.target.value)}
-              />
-            </div>
           </div>
 
           {error && (
