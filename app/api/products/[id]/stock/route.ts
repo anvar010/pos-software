@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireApiSession } from "@/lib/api-auth";
+import { withDbRetry } from "@/lib/db-retry";
 import { stockAdjustSchema } from "@/lib/validations";
 import { serializeProduct } from "@/lib/serialize";
 
@@ -25,7 +26,8 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { changeAmount, reason, note } = parsed.data;
 
   try {
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await withDbRetry(() =>
+      prisma.$transaction(async (tx) => {
       const product = await tx.product.update({
         where: { id },
         data: { stockQuantity: { increment: changeAmount } },
@@ -41,7 +43,8 @@ export async function POST(req: NextRequest, { params }: Params) {
         },
       });
       return product;
-    });
+      })
+    );
     return NextResponse.json(serializeProduct(updated));
   } catch (e) {
     if (

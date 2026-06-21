@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireApiSession } from "@/lib/api-auth";
+import { withDbRetry } from "@/lib/db-retry";
 import { saleInputSchema } from "@/lib/validations";
 import { serializeSale } from "@/lib/serialize";
 import { computeSaleTotals, loyaltyPointsFor, type SaleLineInput } from "@/lib/sale-calc";
@@ -119,7 +120,8 @@ export async function POST(req: NextRequest) {
   const loyaltyRate = store ? Number(store.loyaltyRate) : 1;
 
   try {
-    const sale = await prisma.$transaction(async (tx) => {
+    const sale = await withDbRetry(() =>
+      prisma.$transaction(async (tx) => {
       const created = await tx.sale.create({
         data: {
           localId: input.localId ?? null,
@@ -175,7 +177,8 @@ export async function POST(req: NextRequest) {
       }
 
       return created;
-    });
+      })
+    );
 
     return NextResponse.json(serializeSale(sale), { status: 201 });
   } catch (e) {
