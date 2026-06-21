@@ -171,7 +171,7 @@ model Store {
   phone          String?
   email          String?
   logoUrl        String?
-  currency       String   @default("USD")
+  currency       String   @default("INR")
   defaultTaxRate Decimal  @default(0) @db.Decimal(5, 2)
   loyaltyRate    Decimal  @default(1) @db.Decimal(6, 2) // points earned per 1 unit of currency spent
   lowStockDefault Int     @default(5)

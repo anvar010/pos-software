@@ -22,7 +22,7 @@ async function main() {
   await prisma.store.upsert({
     where: { id: "store" },
     update: {},
-    create: { id: "store", name: "My Retail Store", defaultTaxRate: 0, currency: "USD" },
+    create: { id: "store", name: "My Retail Store", defaultTaxRate: 0, currency: "INR" },
   });
   console.log("✔ Store settings ready");
 

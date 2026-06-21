@@ -29,7 +29,7 @@ export default async function CheckoutPage() {
         phone: null,
         email: null,
         logoUrl: null,
-        currency: "USD",
+        currency: "INR",
         defaultTaxRate: 0,
         loyaltyRate: 1,
         lowStockDefault: 5,

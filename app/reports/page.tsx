@@ -28,7 +28,7 @@ export default async function ReportsPage({
     getReport(period),
     prisma.store.findUnique({ where: { id: "store" } }),
   ]);
-  const currency = store?.currency ?? "USD";
+  const currency = store?.currency ?? "INR";
 
   return (
     <>

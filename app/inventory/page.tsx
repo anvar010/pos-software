@@ -34,7 +34,7 @@ export default async function InventoryPage() {
         <InventoryClient
           initialProducts={products.map(serializeProduct)}
           categories={categories.map(serializeCategory)}
-          currency={store?.currency ?? "USD"}
+          currency={store?.currency ?? "INR"}
         />
       </main>
     </>

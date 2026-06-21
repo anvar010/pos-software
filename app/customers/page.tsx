@@ -30,7 +30,7 @@ export default async function CustomersPage() {
 
         <CustomersClient
           initialCustomers={customers.map(serializeCustomer)}
-          currency={store?.currency ?? "USD"}
+          currency={store?.currency ?? "INR"}
         />
       </main>
     </>
