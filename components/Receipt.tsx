@@ -7,7 +7,7 @@ import type { SaleDTO, StoreDTO } from "@/types";
 const METHOD_LABEL: Record<string, string> = {
   CASH: "Cash",
   CARD: "Card",
-  DIGITAL_WALLET: "Digital wallet",
+  DIGITAL_WALLET: "Google Pay",
   SPLIT: "Split",
 };
 

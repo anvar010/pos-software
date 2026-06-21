@@ -6,7 +6,11 @@ import { Receipt } from "@/components/Receipt";
 import { Modal } from "@/components/ui/Modal";
 import { useCart } from "@/store/cart";
 import { useOnline } from "@/lib/use-online";
-import { computeSaleTotals, type SaleLineInput } from "@/lib/sale-calc";
+import {
+  computeSaleTotals,
+  type SaleLineInput,
+  type SaleTotals,
+} from "@/lib/sale-calc";
 import { submitSale } from "@/lib/submit-sale";
 import { cacheProducts, getCachedProducts } from "@/lib/offline-sync";
 import { formatCurrency } from "@/lib/format";
@@ -43,12 +47,13 @@ export function CheckoutClient({
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<ProductDTO[]>(initialProducts);
   const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState<string>(""); // "" = All
+  const [categoryId, setCategoryId] = useState<string>("");
   const [paying, setPaying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [receipt, setReceipt] = useState<{ sale: SaleDTO; queued: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pickingCustomer, setPickingCustomer] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false); // mobile cart sheet
 
   const cart = useCart();
 
@@ -132,17 +137,19 @@ export function CheckoutClient({
     }
 
     setPaying(false);
+    setCartOpen(false);
     cart.clear();
     setReceipt({ sale: result.sale, queued: result.queued });
     await loadProducts();
   }
 
   const currency = store.currency;
+  const itemCount = mounted ? cart.count() : 0;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+    <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-4">
       {/* Products */}
-      <section className="flex flex-col gap-3 lg:h-[calc(100dvh-7rem)]">
+      <section className="flex flex-col gap-3 pb-24 lg:h-[calc(100dvh-7rem)] lg:pb-0">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -150,7 +157,6 @@ export function CheckoutClient({
           className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
         />
 
-        {/* Product tiles */}
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
             {filtered.map((p) => {
@@ -198,8 +204,8 @@ export function CheckoutClient({
           </div>
         </div>
 
-        {/* Category tabs (bottom) */}
-        <div className="-mb-1 flex gap-2 overflow-x-auto border-t border-slate-200 pt-3">
+        {/* Category tabs */}
+        <div className="flex gap-2 overflow-x-auto border-t border-slate-200 pt-3">
           <CategoryTab label="All" active={categoryId === ""} onClick={() => setCategoryId("")} />
           {categories.map((c) => (
             <CategoryTab
@@ -212,140 +218,55 @@ export function CheckoutClient({
         </div>
       </section>
 
-      {/* Cart */}
-      <section className="lg:sticky lg:top-20 lg:self-start">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <h2 className="font-semibold">
-              Ticket {mounted && cart.count() > 0 && `(${cart.count()})`}
-            </h2>
-            {mounted && cart.lines.length > 0 && (
-              <button
-                onClick={() => cart.clear()}
-                className="text-xs text-slate-400 hover:text-red-600"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div className="border-b border-slate-100 px-4 py-2">
-            <button
-              onClick={() => setPickingCustomer(true)}
-              className="flex w-full items-center justify-between text-sm"
-            >
-              <span className="text-slate-500">Customer</span>
-              <span className="font-medium text-indigo-700">
-                {mounted && cart.customer ? cart.customer.name : "Walk-in"}
-              </span>
-            </button>
-          </div>
-
-          <div className="max-h-[38vh] overflow-y-auto lg:max-h-[42vh]">
-            {!mounted || cart.lines.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-slate-400">
-                Tap products to add them.
-              </p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {cart.lines.map((l) => (
-                  <li key={l.productId} className="px-4 py-2.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{l.name}</p>
-                        <p className="text-xs text-slate-400">
-                          {formatCurrency(l.unitPrice, currency)} each
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => cart.removeLine(l.productId)}
-                        className="text-slate-300 hover:text-red-600"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    <div className="mt-1.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => cart.increment(l.productId, -1)}
-                          className="h-7 w-7 rounded-lg border border-slate-300 text-lg leading-none"
-                        >
-                          −
-                        </button>
-                        <span className="w-7 text-center text-sm font-medium">{l.quantity}</span>
-                        <button
-                          onClick={() => cart.increment(l.productId, 1)}
-                          className="h-7 w-7 rounded-lg border border-slate-300 text-lg leading-none"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={l.lineDiscount || ""}
-                        onChange={(e) =>
-                          cart.setLineDiscount(l.productId, parseFloat(e.target.value) || 0)
-                        }
-                        placeholder="disc"
-                        className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs"
-                        title="Line discount"
-                      />
-                      <span className="w-16 text-right text-sm font-semibold">
-                        {formatCurrency(
-                          Math.max(0, l.unitPrice * l.quantity - l.lineDiscount),
-                          currency
-                        )}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="space-y-1.5 border-t border-slate-100 px-4 py-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Cart discount</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={mounted ? cart.cartDiscount || "" : ""}
-                onChange={(e) => cart.setCartDiscount(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm"
-              />
-            </div>
-            <Row label="Subtotal" value={formatCurrency(totals.itemsSubtotal, currency)} />
-            {totals.totalDiscount > 0 && (
-              <Row label="Discount" value={`−${formatCurrency(totals.totalDiscount, currency)}`} />
-            )}
-            <Row label="Tax" value={formatCurrency(totals.taxAmount, currency)} />
-            <div className="flex justify-between pt-1 text-lg font-bold">
-              <span>Total</span>
-              <span>{formatCurrency(totals.total, currency)}</span>
-            </div>
-
-            <button
-              disabled={!mounted || cart.lines.length === 0}
-              onClick={() => {
-                setError(null);
-                setPaying(true);
-              }}
-              className="mt-2 w-full rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white shadow-sm active:scale-95 disabled:opacity-50"
-            >
-              Charge {mounted ? formatCurrency(totals.total, currency) : ""}
-            </button>
-            {!online && (
-              <p className="text-center text-xs text-amber-600">
-                Offline — sale will be saved and synced later.
-              </p>
-            )}
-          </div>
-        </div>
+      {/* Cart — desktop column */}
+      <section className="hidden lg:sticky lg:top-20 lg:block lg:self-start">
+        <CartCard
+          mounted={mounted}
+          currency={currency}
+          online={online}
+          totals={totals}
+          onCharge={() => {
+            setError(null);
+            setPaying(true);
+          }}
+          onPickCustomer={() => setPickingCustomer(true)}
+        />
       </section>
+
+      {/* Mobile sticky charge bar */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-2 backdrop-blur lg:hidden">
+        <button
+          onClick={() => setCartOpen(true)}
+          disabled={itemCount === 0}
+          className="flex w-full items-center justify-between rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white shadow-sm active:scale-[0.99] disabled:bg-slate-300"
+        >
+          <span className="flex items-center gap-2">
+            <span className="rounded-full bg-white/25 px-2 py-0.5 text-sm">
+              {itemCount}
+            </span>
+            View ticket
+          </span>
+          <span>{formatCurrency(totals.total, currency)}</span>
+        </button>
+      </div>
+
+      {/* Mobile cart sheet */}
+      {cartOpen && (
+        <Modal title="Ticket" onClose={() => setCartOpen(false)} size="md">
+          <CartCard
+            mounted={mounted}
+            currency={currency}
+            online={online}
+            totals={totals}
+            embedded
+            onCharge={() => {
+              setError(null);
+              setPaying(true);
+            }}
+            onPickCustomer={() => setPickingCustomer(true)}
+          />
+        </Modal>
+      )}
 
       {/* Overlays */}
       {paying && (
@@ -383,6 +304,159 @@ export function CheckoutClient({
           onClose={() => setPickingCustomer(false)}
         />
       )}
+    </div>
+  );
+}
+
+function CartCard({
+  mounted,
+  currency,
+  online,
+  totals,
+  embedded,
+  onCharge,
+  onPickCustomer,
+}: {
+  mounted: boolean;
+  currency: string;
+  online: boolean;
+  totals: SaleTotals;
+  embedded?: boolean;
+  onCharge: () => void;
+  onPickCustomer: () => void;
+}) {
+  const cart = useCart();
+
+  return (
+    <div className={embedded ? "" : "rounded-2xl border border-slate-200 bg-white shadow-sm"}>
+      {!embedded && (
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <h2 className="font-semibold">
+            Ticket {mounted && cart.count() > 0 && `(${cart.count()})`}
+          </h2>
+          {mounted && cart.lines.length > 0 && (
+            <button
+              onClick={() => cart.clear()}
+              className="text-xs text-slate-400 hover:text-red-600"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className={embedded ? "border-b border-slate-100 pb-2" : "border-b border-slate-100 px-4 py-2"}>
+        <button
+          onClick={onPickCustomer}
+          className="flex w-full items-center justify-between text-sm"
+        >
+          <span className="text-slate-500">Customer</span>
+          <span className="font-medium text-indigo-700">
+            {mounted && cart.customer ? cart.customer.name : "Walk-in"}
+          </span>
+        </button>
+      </div>
+
+      <div className={`overflow-y-auto ${embedded ? "max-h-[45vh]" : "max-h-[38vh] lg:max-h-[42vh]"}`}>
+        {!mounted || cart.lines.length === 0 ? (
+          <p className="px-1 py-10 text-center text-sm text-slate-400">
+            Tap products to add them.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {cart.lines.map((l) => (
+              <li key={l.productId} className={embedded ? "py-2.5" : "px-4 py-2.5"}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{l.name}</p>
+                    <p className="text-xs text-slate-400">
+                      {formatCurrency(l.unitPrice, currency)} each
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => cart.removeLine(l.productId)}
+                    className="text-slate-300 hover:text-red-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => cart.increment(l.productId, -1)}
+                      className="h-8 w-8 rounded-lg border border-slate-300 text-lg leading-none"
+                    >
+                      −
+                    </button>
+                    <span className="w-7 text-center text-sm font-medium">{l.quantity}</span>
+                    <button
+                      onClick={() => cart.increment(l.productId, 1)}
+                      className="h-8 w-8 rounded-lg border border-slate-300 text-lg leading-none"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={l.lineDiscount || ""}
+                    onChange={(e) =>
+                      cart.setLineDiscount(l.productId, parseFloat(e.target.value) || 0)
+                    }
+                    placeholder="disc"
+                    className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs"
+                    title="Line discount"
+                  />
+                  <span className="w-16 text-right text-sm font-semibold">
+                    {formatCurrency(
+                      Math.max(0, l.unitPrice * l.quantity - l.lineDiscount),
+                      currency
+                    )}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className={`space-y-1.5 border-t border-slate-100 pt-3 text-sm ${embedded ? "" : "px-4 pb-3"}`}>
+        <div className="flex items-center justify-between">
+          <span className="text-slate-500">Cart discount</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={mounted ? cart.cartDiscount || "" : ""}
+            onChange={(e) => cart.setCartDiscount(parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+            className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm"
+          />
+        </div>
+        <Row label="Subtotal" value={formatCurrency(totals.itemsSubtotal, currency)} />
+        {totals.totalDiscount > 0 && (
+          <Row label="Discount" value={`−${formatCurrency(totals.totalDiscount, currency)}`} />
+        )}
+        <Row label="Tax" value={formatCurrency(totals.taxAmount, currency)} />
+        <div className="flex justify-between pt-1 text-lg font-bold">
+          <span>Total</span>
+          <span>{formatCurrency(totals.total, currency)}</span>
+        </div>
+
+        <button
+          disabled={!mounted || cart.lines.length === 0}
+          onClick={onCharge}
+          className="mt-2 w-full rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white shadow-sm active:scale-95 disabled:opacity-50"
+        >
+          Charge {mounted ? formatCurrency(totals.total, currency) : ""}
+        </button>
+        {!online && (
+          <p className="text-center text-xs text-amber-600">
+            Offline — sale will be saved and synced later.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
