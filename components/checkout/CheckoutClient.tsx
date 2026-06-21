@@ -244,7 +244,7 @@ export function CheckoutClient({
             <span className="rounded-full bg-white/25 px-2 py-0.5 text-sm">
               {itemCount}
             </span>
-            View ticket
+            View basket
           </span>
           <span>{formatCurrency(totals.total, currency)}</span>
         </button>
@@ -252,7 +252,7 @@ export function CheckoutClient({
 
       {/* Mobile cart sheet */}
       {cartOpen && (
-        <Modal title="Ticket" onClose={() => setCartOpen(false)} size="md">
+        <Modal title="Basket" onClose={() => setCartOpen(false)} size="md">
           <CartCard
             mounted={mounted}
             currency={currency}
@@ -332,7 +332,7 @@ function CartCard({
       {!embedded && (
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h2 className="font-semibold">
-            Ticket {mounted && cart.count() > 0 && `(${cart.count()})`}
+            Basket {mounted && cart.count() > 0 && `(${cart.count()})`}
           </h2>
           {mounted && cart.lines.length > 0 && (
             <button
