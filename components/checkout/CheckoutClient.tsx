@@ -204,8 +204,8 @@ export function CheckoutClient({
           </div>
         </div>
 
-        {/* Category tabs */}
-        <div className="flex gap-2 overflow-x-auto border-t border-slate-200 pt-3">
+        {/* Category tabs — above search on mobile, below grid on desktop */}
+        <div className="order-first flex gap-2 overflow-x-auto border-b border-slate-200 pb-3 lg:order-none lg:border-b-0 lg:border-t lg:pb-0 lg:pt-3">
           <CategoryTab label="All" active={categoryId === ""} onClick={() => setCategoryId("")} />
           {categories.map((c) => (
             <CategoryTab
