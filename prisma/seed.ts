@@ -27,7 +27,17 @@ async function main() {
   console.log("✔ Store settings ready");
 
   // --- Sample categories ----------------------------------------------------
-  const categoryNames = ["Beverages", "Snacks", "Groceries", "Household"];
+  const categoryNames = [
+    "Vegetables",
+    "Fruits",
+    "Cool Drinks",
+    "Dairy",
+    "Snacks",
+    "Bakery",
+    "Groceries",
+    "Household",
+    "Personal Care",
+  ];
   const categories = await Promise.all(
     categoryNames.map((cName) =>
       prisma.category.upsert({
@@ -41,12 +51,14 @@ async function main() {
 
   // --- Sample products ------------------------------------------------------
   const sampleProducts = [
-    { name: "Bottled Water 500ml", sku: "BEV-001", barcode: "1000000000017", price: 1.0, costPrice: 0.4, stockQuantity: 120, category: "Beverages" },
-    { name: "Cola Can 330ml", sku: "BEV-002", barcode: "1000000000024", price: 1.5, costPrice: 0.7, stockQuantity: 80, category: "Beverages" },
-    { name: "Potato Chips", sku: "SNK-001", barcode: "1000000000031", price: 2.25, costPrice: 1.1, stockQuantity: 60, category: "Snacks" },
-    { name: "Chocolate Bar", sku: "SNK-002", barcode: "1000000000048", price: 1.75, costPrice: 0.8, stockQuantity: 4, category: "Snacks" },
-    { name: "White Rice 1kg", sku: "GRO-001", barcode: "1000000000055", price: 3.5, costPrice: 2.0, stockQuantity: 40, category: "Groceries" },
-    { name: "Dish Soap 500ml", sku: "HHD-001", barcode: "1000000000062", price: 2.99, costPrice: 1.5, stockQuantity: 25, category: "Household" },
+    { name: "Tomato 1kg", sku: "VEG-001", barcode: "1000000000017", price: 30, costPrice: 18, stockQuantity: 120, category: "Vegetables" },
+    { name: "Onion 1kg", sku: "VEG-002", barcode: "1000000000024", price: 40, costPrice: 25, stockQuantity: 90, category: "Vegetables" },
+    { name: "Banana (dozen)", sku: "FRT-001", barcode: "1000000000031", price: 50, costPrice: 32, stockQuantity: 60, category: "Fruits" },
+    { name: "Coca-Cola 750ml", sku: "CLD-001", barcode: "1000000000048", price: 45, costPrice: 32, stockQuantity: 80, category: "Cool Drinks" },
+    { name: "Milk 1L", sku: "DRY-001", barcode: "1000000000055", price: 60, costPrice: 48, stockQuantity: 40, category: "Dairy" },
+    { name: "Potato Chips", sku: "SNK-001", barcode: "1000000000062", price: 20, costPrice: 12, stockQuantity: 4, category: "Snacks" },
+    { name: "White Bread", sku: "BKY-001", barcode: "1000000000079", price: 35, costPrice: 22, stockQuantity: 25, category: "Bakery" },
+    { name: "Dish Soap 500ml", sku: "HHD-001", barcode: "1000000000086", price: 99, costPrice: 60, stockQuantity: 25, category: "Household" },
   ];
 
   const catByName = new Map(categories.map((c) => [c.name, c.id]));
