@@ -74,6 +74,7 @@ model Product {
   price             Decimal  @db.Decimal(10, 2) // price per `unit`
   costPrice         Decimal  @default(0) @db.Decimal(10, 2)
   unit              String   @default("pcs") // pcs | kg | ltr | g
+  baseQty           Decimal  @default(1) @db.Decimal(12, 3) // price applies to this many `unit` (e.g. 250 g)
   categoryId        String?
   stockQuantity     Decimal  @default(0) @db.Decimal(12, 3)
   lowStockThreshold Int      @default(5)

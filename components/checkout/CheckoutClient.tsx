@@ -196,7 +196,9 @@ export function CheckoutClient({
                     <p className="mt-0.5 text-sm font-bold text-white">
                       {formatCurrency(p.price, currency)}
                       {p.unit !== "pcs" && (
-                        <span className="text-[10px] font-normal">/{p.unit}</span>
+                        <span className="text-[10px] font-normal">
+                          /{p.unit === "g" ? `${p.baseQty}g` : p.unit}
+                        </span>
                       )}
                     </p>
                   </div>
@@ -378,8 +380,11 @@ function CartCard({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{l.name}</p>
                     <p className="text-xs text-slate-400">
-                      {formatCurrency(l.unitPrice, currency)}
-                      {l.unit === "pcs" ? " each" : ` / ${l.unit}`}
+                      {l.unit === "g"
+                        ? `${formatCurrency(l.unitPrice * l.baseQty, currency)} / ${l.baseQty}g`
+                        : l.unit === "pcs"
+                        ? `${formatCurrency(l.unitPrice, currency)} each`
+                        : `${formatCurrency(l.unitPrice, currency)} / ${l.unit}`}
                     </p>
                   </div>
                   <button
@@ -400,13 +405,18 @@ function CartCard({
                     <input
                       type="number"
                       min="0"
-                      step={isWeight(l.unit) ? "50" : "1"}
+                      step={showSub(l.unit) ? "50" : "1"}
                       value={
-                        isWeight(l.unit) ? Math.round(l.quantity * 1000) : l.quantity
+                        showSub(l.unit)
+                          ? Math.round(l.quantity * subFactor(l.unit))
+                          : l.quantity
                       }
                       onChange={(e) => {
                         const v = parseFloat(e.target.value) || 0;
-                        cart.setQuantity(l.productId, isWeight(l.unit) ? v / 1000 : v);
+                        cart.setQuantity(
+                          l.productId,
+                          showSub(l.unit) ? v / subFactor(l.unit) : v
+                        );
                       }}
                       className="w-16 rounded-lg border border-slate-300 px-1 py-1 text-center text-sm"
                     />
@@ -417,7 +427,7 @@ function CartCard({
                       +
                     </button>
                     <span className="text-xs text-slate-400">
-                      {isWeight(l.unit) ? subUnit(l.unit) : ""}
+                      {showSub(l.unit) ? subUnit(l.unit) : ""}
                     </span>
                   </div>
                   <input
@@ -501,13 +511,17 @@ function catIcon(name: string): string {
 }
 
 // +/- step depends on how the product is sold.
-// +/- step in BASE unit. Weight/volume = 0.1 (=100 g / 100 ml) per tap.
+// +/- step in BASE unit per tap.
 function qtyStep(unit: string): number {
-  if (unit === "kg" || unit === "ltr") return 0.1;
+  if (unit === "kg" || unit === "ltr") return 0.1; // 100 g/ml
+  if (unit === "g") return 50; // 50 grams
   return 1; // pcs
 }
-const isWeight = (unit: string) => unit === "kg" || unit === "ltr";
+// Show a sub-unit field (grams/ml) for everything except pcs.
+const showSub = (unit: string) => unit !== "pcs";
 const subUnit = (unit: string) => (unit === "ltr" ? "ml" : "g");
+// kg/ltr stored in kg/ltr -> ×1000 for grams/ml; g already in grams.
+const subFactor = (unit: string) => (unit === "kg" || unit === "ltr" ? 1000 : 1);
 
 function CategoryTab({
   icon,

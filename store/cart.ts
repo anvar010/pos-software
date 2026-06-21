@@ -8,11 +8,12 @@ export interface CartLine {
   productId: string;
   name: string;
   sku: string;
-  unitPrice: number;
+  unitPrice: number; // price per 1 base unit (per pc / kg / ltr / gram)
   taxRate: number;
   unit: string;
+  baseQty: number; // grams the price applies to (g items); else 1
   imageUrl: string | null;
-  quantity: number;
+  quantity: number; // in base unit (pcs / kg / ltr / grams)
   lineDiscount: number;
   /** cached available stock for UI hints */
   stockQuantity: number;
@@ -45,13 +46,20 @@ export const useCart = create<CartState>()(
       cartDiscount: 0,
       customer: null,
 
-      addProduct: (p, qty = 1) =>
+      addProduct: (p) =>
         set((state) => {
+          const isG = p.unit === "g";
+          const base = p.baseQty || 1;
+          // price per 1 base unit; for grams that's price / baseQty per gram
+          const unitPrice = isG ? p.price / base : p.price;
+          // amount added per tap: 1 pc / 1 kg / 1 ltr / `base` grams
+          const addQty = isG ? base : 1;
+
           const existing = state.lines.find((l) => l.productId === p.id);
           if (existing) {
             return {
               lines: state.lines.map((l) =>
-                l.productId === p.id ? { ...l, quantity: l.quantity + qty } : l
+                l.productId === p.id ? { ...l, quantity: l.quantity + addQty } : l
               ),
             };
           }
@@ -59,11 +67,12 @@ export const useCart = create<CartState>()(
             productId: p.id,
             name: p.name,
             sku: p.sku,
-            unitPrice: p.price,
+            unitPrice,
             taxRate: p.taxRate,
             unit: p.unit,
+            baseQty: base,
             imageUrl: p.imageUrl,
-            quantity: qty,
+            quantity: addQty,
             lineDiscount: 0,
             stockQuantity: p.stockQuantity,
           };

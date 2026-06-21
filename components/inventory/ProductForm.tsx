@@ -11,6 +11,7 @@ type FormState = {
   price: string;
   costPrice: string;
   unit: string;
+  baseQty: string;
   categoryId: string;
   stockQuantity: string;
   lowStockThreshold: string;
@@ -26,6 +27,7 @@ function initialState(product?: ProductDTO): FormState {
     price: product ? String(product.price) : "",
     costPrice: product ? String(product.costPrice) : "0",
     unit: product?.unit ?? "pcs",
+    baseQty: product ? String(product.baseQty) : "1",
     categoryId: product?.categoryId ?? "",
     stockQuantity: product ? String(product.stockQuantity) : "0",
     lowStockThreshold: product ? String(product.lowStockThreshold) : "5",
@@ -92,6 +94,7 @@ export function ProductForm({
       price: form.price,
       costPrice: form.costPrice || 0,
       unit: form.unit,
+      baseQty: form.unit === "g" ? form.baseQty || 1 : 1,
       categoryId: form.categoryId || null,
       stockQuantity: form.stockQuantity || 0,
       lowStockThreshold: form.lowStockThreshold || 0,
@@ -193,7 +196,7 @@ export function ProductForm({
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
-              Price (per {form.unit})
+              {form.unit === "g" ? `Price (per ${form.baseQty || 1} g)` : `Price (per ${form.unit})`}
               <input
                 className={inputClass}
                 type="number"
@@ -214,9 +217,25 @@ export function ProductForm({
               >
                 <option value="pcs">Piece (pcs)</option>
                 <option value="kg">Weight (kg) — sell loose by grams</option>
+                <option value="g">Gram (g) — price for set grams</option>
                 <option value="ltr">Volume (ltr) — sell loose by ml</option>
               </select>
             </label>
+
+            {form.unit === "g" && (
+              <label className="block text-sm font-medium text-slate-700">
+                Grams for this price
+                <input
+                  className={inputClass}
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={form.baseQty}
+                  onChange={(e) => set("baseQty", e.target.value)}
+                  placeholder="e.g. 250"
+                />
+              </label>
+            )}
 
             <label className="block text-sm font-medium text-slate-700">
               Cost price

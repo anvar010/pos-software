@@ -56,6 +56,7 @@ export function serializeProduct(p: ProductWithCategory): ProductDTO {
     price: Number(p.price),
     costPrice: Number(p.costPrice),
     unit: p.unit,
+    baseQty: Number(p.baseQty),
     categoryId: p.categoryId,
     category: p.category ? serializeCategory(p.category) : null,
     stockQuantity: Number(p.stockQuantity),

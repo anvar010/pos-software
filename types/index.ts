@@ -79,6 +79,7 @@ export interface ProductDTO {
   price: number;
   costPrice: number;
   unit: string;
+  baseQty: number;
   categoryId: string | null;
   category: CategoryDTO | null;
   stockQuantity: number;
