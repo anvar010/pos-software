@@ -1,23 +1,23 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { Topbar } from "@/components/Topbar";
 import { CheckoutClient } from "@/components/checkout/CheckoutClient";
-import { serializeProduct, serializeStore } from "@/lib/serialize";
+import { serializeProduct, serializeStore, serializeCategory } from "@/lib/serialize";
 
 export const metadata: Metadata = { title: "Checkout" };
 export const dynamic = "force-dynamic";
 
 export default async function CheckoutPage() {
   const session = await auth();
-  const [products, store, customers] = await Promise.all([
+  const [products, store, customers, categories] = await Promise.all([
     prisma.product.findMany({ include: { category: true }, orderBy: { name: "asc" } }),
     prisma.store.findUnique({ where: { id: "store" } }),
     prisma.customer.findMany({
       select: { id: true, name: true, phone: true },
       orderBy: { name: "asc" },
     }),
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const storeDto = store
@@ -39,18 +39,10 @@ export default async function CheckoutPage() {
   return (
     <>
       <Topbar />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-4 sm:px-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <Link href="/" className="text-sm text-indigo-600 hover:underline">
-              ← Home
-            </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Checkout</h1>
-          </div>
-        </div>
-
+      <main className="w-full flex-1 px-2 py-2 sm:px-4 sm:py-3">
         <CheckoutClient
           initialProducts={products.map(serializeProduct)}
+          categories={categories.map(serializeCategory)}
           store={storeDto}
           customers={customers}
           cashierName={session?.user?.name ?? null}

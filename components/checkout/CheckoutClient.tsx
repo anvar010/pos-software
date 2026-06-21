@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { PaymentModal } from "@/components/checkout/PaymentModal";
 import { Receipt } from "@/components/Receipt";
 import { Modal } from "@/components/ui/Modal";
@@ -11,7 +10,13 @@ import { computeSaleTotals, type SaleLineInput } from "@/lib/sale-calc";
 import { submitSale } from "@/lib/submit-sale";
 import { cacheProducts, getCachedProducts } from "@/lib/offline-sync";
 import { formatCurrency } from "@/lib/format";
-import type { PaymentSplit, ProductDTO, SaleDTO, StoreDTO } from "@/types";
+import type {
+  CategoryDTO,
+  PaymentSplit,
+  ProductDTO,
+  SaleDTO,
+  StoreDTO,
+} from "@/types";
 
 interface CustomerLite {
   id: string;
@@ -19,13 +24,17 @@ interface CustomerLite {
   phone: string | null;
 }
 
+const FALLBACK_IMG = "/icons/icon-192.png";
+
 export function CheckoutClient({
   initialProducts,
+  categories,
   store,
   customers,
   cashierName,
 }: {
   initialProducts: ProductDTO[];
+  categories: CategoryDTO[];
   store: StoreDTO;
   customers: CustomerLite[];
   cashierName: string | null;
@@ -34,7 +43,7 @@ export function CheckoutClient({
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<ProductDTO[]>(initialProducts);
   const [search, setSearch] = useState("");
-  const [scanning, setScanning] = useState(false);
+  const [categoryId, setCategoryId] = useState<string>(""); // "" = All
   const [paying, setPaying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [receipt, setReceipt] = useState<{ sale: SaleDTO; queued: boolean } | null>(null);
@@ -45,7 +54,6 @@ export function CheckoutClient({
 
   useEffect(() => setMounted(true), []);
 
-  // Seed/refresh the offline cache and pick the freshest product source.
   async function loadProducts() {
     if (navigator.onLine) {
       try {
@@ -65,7 +73,6 @@ export function CheckoutClient({
   }
 
   useEffect(() => {
-    // On mount: cache the SSR products, then reconcile with the best source.
     cacheProducts(initialProducts).catch(() => {});
     loadProducts();
     const onSynced = () => loadProducts();
@@ -76,14 +83,16 @@ export function CheckoutClient({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
+    return products.filter((p) => {
+      if (categoryId && p.categoryId !== categoryId) return false;
+      if (!q) return true;
+      return (
         p.name.toLowerCase().includes(q) ||
         p.sku.toLowerCase().includes(q) ||
         (p.barcode ?? "").toLowerCase().includes(q)
-    );
-  }, [products, search]);
+      );
+    });
+  }, [products, search, categoryId]);
 
   const totals = useMemo(() => {
     const lines: SaleLineInput[] = cart.lines.map((l) => ({
@@ -96,16 +105,6 @@ export function CheckoutClient({
     }));
     return computeSaleTotals(lines, cart.cartDiscount);
   }, [cart.lines, cart.cartDiscount]);
-
-  function handleScan(code: string) {
-    setScanning(false);
-    const match = products.find((p) => p.barcode === code || p.sku === code);
-    if (match) {
-      cart.addProduct(match);
-    } else {
-      setSearch(code);
-    }
-  }
 
   async function handleConfirmPayment(
     method: "CASH" | "CARD" | "DIGITAL_WALLET" | "SPLIT",
@@ -143,58 +142,73 @@ export function CheckoutClient({
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
       {/* Products */}
-      <section>
-        <div className="mb-3 flex gap-2">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search or scan a product…"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-          />
-          <button
-            onClick={() => setScanning(true)}
-            className="shrink-0 rounded-xl border border-slate-300 bg-white px-4 text-lg hover:bg-slate-100"
-            title="Scan barcode"
-          >
-            📷
-          </button>
-        </div>
+      <section className="flex flex-col gap-3 lg:h-[calc(100dvh-7rem)]">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search products…"
+          className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+        />
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p) => {
-            const out = p.stockQuantity <= 0;
-            return (
-              <button
-                key={p.id}
-                onClick={() => cart.addProduct(p)}
-                className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-indigo-300 active:scale-[0.98]"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{p.sku}</span>
+        {/* Product tiles */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5">
+            {filtered.map((p) => {
+              const out = p.stockQuantity <= 0;
+              const low = !out && p.stockQuantity <= p.lowStockThreshold;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => cart.addProduct(p)}
+                  className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100 text-left shadow-sm transition active:scale-[0.97]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={p.imageUrl || FALLBACK_IMG}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
                   <span
-                    className={`rounded-full px-1.5 text-[10px] font-semibold ${
+                    className={`absolute right-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                       out
-                        ? "bg-red-100 text-red-700"
-                        : p.stockQuantity <= p.lowStockThreshold
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-slate-100 text-slate-500"
+                        ? "bg-red-600 text-white"
+                        : low
+                        ? "bg-amber-500 text-white"
+                        : "bg-black/55 text-white"
                     }`}
                   >
-                    {p.stockQuantity}
+                    {out ? "Out" : p.stockQuantity}
                   </span>
-                </div>
-                <span className="mt-1 line-clamp-2 text-sm font-medium">{p.name}</span>
-                <span className="mt-auto pt-2 font-semibold text-indigo-700">
-                  {formatCurrency(p.price, currency)}
-                </span>
-              </button>
-            );
-          })}
-          {filtered.length === 0 && (
-            <p className="col-span-full py-10 text-center text-slate-400">
-              No products match.
-            </p>
-          )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2">
+                    <p className="line-clamp-2 text-xs font-semibold leading-tight text-white">
+                      {p.name}
+                    </p>
+                    <p className="mt-0.5 text-sm font-bold text-white">
+                      {formatCurrency(p.price, currency)}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+            {filtered.length === 0 && (
+              <p className="col-span-full py-10 text-center text-slate-400">
+                No products.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Category tabs (bottom) */}
+        <div className="-mb-1 flex gap-2 overflow-x-auto border-t border-slate-200 pt-3">
+          <CategoryTab label="All" active={categoryId === ""} onClick={() => setCategoryId("")} />
+          {categories.map((c) => (
+            <CategoryTab
+              key={c.id}
+              label={c.name}
+              active={categoryId === c.id}
+              onClick={() => setCategoryId(c.id)}
+            />
+          ))}
         </div>
       </section>
 
@@ -202,7 +216,9 @@ export function CheckoutClient({
       <section className="lg:sticky lg:top-20 lg:self-start">
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <h2 className="font-semibold">Cart {mounted && cart.count() > 0 && `(${cart.count()})`}</h2>
+            <h2 className="font-semibold">
+              Ticket {mounted && cart.count() > 0 && `(${cart.count()})`}
+            </h2>
             {mounted && cart.lines.length > 0 && (
               <button
                 onClick={() => cart.clear()}
@@ -213,7 +229,6 @@ export function CheckoutClient({
             )}
           </div>
 
-          {/* Customer */}
           <div className="border-b border-slate-100 px-4 py-2">
             <button
               onClick={() => setPickingCustomer(true)}
@@ -226,7 +241,7 @@ export function CheckoutClient({
             </button>
           </div>
 
-          <div className="max-h-[40vh] overflow-y-auto lg:max-h-[45vh]">
+          <div className="max-h-[38vh] overflow-y-auto lg:max-h-[42vh]">
             {!mounted || cart.lines.length === 0 ? (
               <p className="px-4 py-10 text-center text-sm text-slate-400">
                 Tap products to add them.
@@ -290,7 +305,6 @@ export function CheckoutClient({
             )}
           </div>
 
-          {/* Totals */}
           <div className="space-y-1.5 border-t border-slate-100 px-4 py-3 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Cart discount</span>
@@ -334,9 +348,6 @@ export function CheckoutClient({
       </section>
 
       {/* Overlays */}
-      {scanning && (
-        <BarcodeScanner onScan={handleScan} onClose={() => setScanning(false)} />
-      )}
       {paying && (
         <PaymentModal
           total={totals.total}
@@ -373,6 +384,29 @@ export function CheckoutClient({
         />
       )}
     </div>
+  );
+}
+
+function CategoryTab({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
+        active
+          ? "bg-indigo-600 text-white shadow-sm"
+          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
