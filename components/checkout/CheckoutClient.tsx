@@ -152,7 +152,7 @@ export function CheckoutClient({
 
         {/* Product tiles */}
         <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
             {filtered.map((p) => {
               const out = p.stockQuantity <= 0;
               const low = !out && p.stockQuantity <= p.lowStockThreshold;
